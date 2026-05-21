@@ -1,9 +1,25 @@
 import "dotenv/config";
-import express from "express";
+import express, { urlencoded } from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import ejs from "ejs";
+import { sendMail } from "./config/mail.js";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-app.get("/", (req, res) => {
-    return res.send("Hello World");
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+//set view engine
+app.set("view engine", "ejs");
+app.set("views", path.resolve(__dirname, "./views"));
+app.get("/", async (req, res) => {
+    const html = await ejs.renderFile(__dirname + `/views/email/welcome.ejs`, {
+        user: {
+            name: "batman"
+        }
+    });
+    await sendMail("rofaf73675@okcpress.com", "testing smtp", html);
+    return res.json({ message: "email send successfully" });
 });
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
