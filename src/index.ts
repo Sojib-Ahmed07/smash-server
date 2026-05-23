@@ -25,10 +25,15 @@ app.get("/", async (req: Request, res: Response) => {
         }
     })
 
-    await sendMail("rofaf73675@okcpress.com", "testing smtp", html)
+    await emailQueue.add(emailQueueName, {to: "rofaf73675@okcpress.com", subject: "testing smtp", htmlContent: html});
 
   return res.json({message: "email send successfully"})
 });
+
+//queue
+import "./jobs/index.js"
+import { emailQueue, emailQueueName } from "./jobs/EmailJob.js";
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
