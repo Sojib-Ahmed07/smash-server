@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import type { Application, Request, Response } from "express";
+import cookieParser from "cookie-parser";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ejs from "ejs";
@@ -19,6 +20,7 @@ const port: number = Number(process.env.PORT) || 3000;
 // Middleware for parsing request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // Setup View Engine
 app.set("view engine", "ejs");
