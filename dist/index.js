@@ -3,7 +3,7 @@ import express, { urlencoded } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import ejs from "ejs";
-import { sendMail } from "./config/mail.js";
+import authRoute from "./routes/authRoute.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -12,6 +12,8 @@ app.use(express.urlencoded({ extended: false }));
 //set view engine
 app.set("view engine", "ejs");
 app.set("views", path.resolve(__dirname, "./views"));
+//routes
+app.use("/api/auth", authRoute);
 app.get("/", async (req, res) => {
     const html = await ejs.renderFile(__dirname + `/views/email/welcome.ejs`, {
         user: {

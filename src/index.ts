@@ -4,7 +4,8 @@ import type { Application, Request, Response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import ejs from "ejs"
-import { sendMail } from "./config/mail.js";
+import authRoute from "./routes/authRoute.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app: Application = express();
@@ -16,6 +17,10 @@ app.use(express.urlencoded({ extended: false }));
 //set view engine
 app.set("view engine", "ejs");
 app.set("views", path.resolve(__dirname, "./views"));
+
+//routes
+app.use("/api/auth", authRoute)
+
 
 app.get("/", async (req: Request, res: Response) => {
 

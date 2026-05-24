@@ -5,19 +5,19 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./dist/index.js",
-    "server": "nodemon ./dist/index.js",
-    "dev": "concurrently \"npm run watch\" \"npm run server\" \"npm run watch-views\"",
-    "watch": "tsc -w",
     "build": "tsc && npm run copy-files",
-    "copy-files": "copyfiles -u 1 \"src/views/**/*\" dist/",
-    "watch-views": "nodemon --watch src/views -e ejs -x \"npm run copy-files\""
+    "copy-files": "mkdir -p dist/views && cp -r src/views/. dist/views",
+    "post-build-run": "npm run copy-files && npm run start",
+    "dev": "tsc-watch --onSuccess \"npm run post-build-run\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.10",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
@@ -25,15 +25,20 @@
     "ejs": "^5.0.2",
     "express": "^5.2.1",
     "nodemailer": "^8.0.7",
-    "prisma": "^7.8.0"
+    "prisma": "^7.8.0",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.0",
     "copyfiles": "^2.4.1",
     "nodemon": "^3.1.14",
+    "tsc-watch": "^7.2.0",
     "typescript": "^6.0.3"
   }
 }
