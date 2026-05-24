@@ -8,7 +8,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-const authenticateToken = (
+export const authenticateToken = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,

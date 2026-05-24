@@ -57,6 +57,9 @@ const registerController = async (req: Request, res: Response) => {
         id: true,
         name: true,
         email: true,
+        username: true,
+        bio: true,
+        avatar: true,
       },
     });
 
@@ -266,7 +269,14 @@ const checkSessionController = async (
 
     const user = await prisma.user.findUnique({
       where: { id: userIdAsNumber },
-      select: { id: true, name: true, email: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        bio: true,
+        avatar: true,
+      },
     });
 
     if (!user) {

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-const authenticateToken = (req, res, next) => {
+export const authenticateToken = (req, res, next) => {
     try {
         let token = undefined;
         if (req.cookies && req.cookies.auth_token) {

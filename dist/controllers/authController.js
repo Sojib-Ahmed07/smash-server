@@ -46,6 +46,9 @@ const registerController = async (req, res) => {
                 id: true,
                 name: true,
                 email: true,
+                username: true,
+                bio: true,
+                avatar: true,
             },
         });
         const actionUrl = `${process.env.APP_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
@@ -207,7 +210,14 @@ const checkSessionController = async (req, res) => {
         }
         const user = await prisma.user.findUnique({
             where: { id: userIdAsNumber },
-            select: { id: true, name: true, email: true },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                bio: true,
+                avatar: true,
+            },
         });
         if (!user) {
             return res.status(404).json({

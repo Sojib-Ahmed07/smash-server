@@ -1,13 +1,28 @@
 import { Router } from "express";
-import { checkSessionController, loginController, logoutController, registerController, verifyEmailController } from "../controllers/authController.js";
-const router = Router()
+import {
+  checkSessionController,
+  loginController,
+  logoutController,
+  registerController,
+  verifyEmailController,
+} from "../controllers/authController.js";
+import { uploadAvatarController } from "../controllers/uploadController.js";
+import { authenticateToken } from "../middlewares/authMiddleware.js";
+import upload from "../config/cloudinary.js";
+
+const router = Router();
 
 router.post("/register", registerController);
 router.get("/verify-email", verifyEmailController);
 router.post("/login", loginController);
 router.post("/logout", logoutController);
-router.get("/me", checkSessionController)
+router.get("/me", checkSessionController);
 
+router.post(
+  "/upload-avatar",
+  authenticateToken,
+  upload.single("avatar"),
+  uploadAvatarController,
+);
 
-export default router
-
+export default router;
