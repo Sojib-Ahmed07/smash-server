@@ -2,10 +2,16 @@ import type { Request, Response } from "express";
 import { registerSchema } from "../validations/authValidation.js";
 import prisma from "../config/database.js";
 import bcrypt from "bcryptjs";
-import {v4 as uuidv4} from "uuid"
+import { v4 as uuidv4 } from "uuid";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import ejs from "ejs";
+import { emailQueue, emailQueueName } from "../jobs/EmailJob.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const registerController = async(req: Request, res: Response) => {
+const registerController = async (req: Request, res: Response) => {
   try {
     const body = req.body;
     const payload = registerSchema.safeParse(body);
@@ -21,8 +27,8 @@ const registerController = async(req: Request, res: Response) => {
     const { name, email, password } = payload.data;
 
     const existingUser = await prisma.user.findUnique({
-      where: {email},
-      select: {id: true}
+      where: { email },
+      select: { id: true },
     });
 
     if (existingUser) {
@@ -32,30 +38,164 @@ const registerController = async(req: Request, res: Response) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const emailVerificationToken = uuidv4();
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        email_verify_token: emailVerificationToken,
+        email_token_expires: tokenExpiry,
       },
       select: {
         id: true,
         name: true,
-        email: true
-      }
+        email: true,
+      },
+    });
+
+    const actionUrl = `${process.env.APP_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
+
+    console.log("🔥 THE GENERATED URL IS:", actionUrl);
+
+    const templatePath = path.join(
+      __dirname,
+      "../views/email/email-verify.ejs",
+    );
+
+    const htmlContent = await ejs.renderFile(templatePath, {
+      user: { name: newUser.name },
+      actionUrl: actionUrl,
+    });
+
+    await emailQueue.add(emailQueueName, {
+      to: newUser.email,
+      subject: "Verify your email address - SMASH Arena",
+      htmlContent: htmlContent,
     });
 
     return res.status(201).json({
       status: "success",
       message: "User created successfully.",
-      data: newUser
+      data: newUser,
     });
-
   } catch (error) {
     return res.status(500).json({ message: "something went wrong" });
   }
 };
 
-export { registerController };
+// const verifyEmailController = async (req: Request, res: Response) => {
+//   try {
+
+//     const { token } = req.query;
+
+//     if (!token || typeof token !== "string") {
+//       return res.status(400).json({ status: "error", message: "Invalid token." });
+//     }
+
+//     const user = await prisma.user.findFirst({
+//       where: { email_verify_token: token },
+//       select: { id: true, email_token_expires: true, email_verified_at: true },
+//     });
+
+//     if (!user) {
+//       return res.status(404).json({ status: "error", message: "Token not found or already used." });
+//     }
+
+//     if (user.email_verified_at) {
+//       return res.status(400).json({ status: "error", message: "Already verified." });
+//     }
+
+//     if (user.email_token_expires && new Date() > user.email_token_expires) {
+//       return res.status(410).json({ status: "error", message: "Token expired." });
+//     }
+
+//     await prisma.user.update({
+//       where: { id: user.id },
+//       data: {
+//         email_verified_at: new Date(),
+//         email_verify_token: null,
+//         email_token_expires: null,
+//       },
+//     });
+
+//     return res.status(200).json({ status: "success", message: "Email verified successfully!" });
+
+//   } catch (error) {
+//     return res.status(500).json({ message: "something went wrong" });
+//   }
+// }
+const verifyEmailController = async (req: Request, res: Response) => {
+  // Resolve the frontend URL base path from your environment variables
+  const clientAppUrl = process.env.CLIENT_APP_URL || "http://localhost:3000";
+  const loginRedirectUrl = `${clientAppUrl}/login`;
+
+  try {
+    const { token } = req.query;
+
+    // 1. Validate token existence and type
+    if (!token || typeof token !== "string") {
+      return res.redirect(
+        `${loginRedirectUrl}?status=error&message=invalid_token`,
+      );
+    }
+
+    // 2. Locate the user with this token
+    const user = await prisma.user.findFirst({
+      where: { email_verify_token: token },
+      select: {
+        id: true,
+        email_token_expires: true,
+        email_verified_at: true,
+      },
+    });
+
+    // 3. Token not found or invalid
+    if (!user) {
+      return res.redirect(
+        `${loginRedirectUrl}?status=error&message=token_not_found`,
+      );
+    }
+
+    // 4. User is already verified
+    if (user.email_verified_at) {
+      return res.redirect(
+        `${loginRedirectUrl}?status=info&message=already_verified`,
+      );
+    }
+
+    // 5. Token expiration boundary check
+    if (user.email_token_expires && new Date() > user.email_token_expires) {
+      return res.redirect(
+        `${loginRedirectUrl}?status=error&message=link_expired`,
+      );
+    }
+
+    // 6. Update database record: Set verified timestamp and clear tokens
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        email_verified_at: new Date(),
+        email_verify_token: null,
+        email_token_expires: null,
+      },
+    });
+
+    // 7. 🎉 SUCCESS REDIRECT: Send the user directly to the frontend login page
+    return res.redirect(
+      `${loginRedirectUrl}?status=success&message=email_verified`,
+    );
+  } catch (error) {
+    console.error("Email verification pipeline error:", error);
+    // Safe fallback to frontend login in case of system/database crash
+    return res.redirect(
+      `${loginRedirectUrl}?status=error&message=server_error`,
+    );
+  }
+};
+
+export { registerController, verifyEmailController };

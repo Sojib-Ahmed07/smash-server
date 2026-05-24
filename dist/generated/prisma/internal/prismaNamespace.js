@@ -87,6 +87,7 @@ export const UserScalarFieldEnum = {
     password_reset_token: 'password_reset_token',
     token_send_at: 'token_send_at',
     email_verify_token: 'email_verify_token',
+    email_token_expires: 'email_token_expires',
     email_verified_at: 'email_verified_at',
     created_at: 'created_at'
 };
